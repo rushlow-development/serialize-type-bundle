@@ -1,5 +1,5 @@
 {
-    "name": "rushlow-development/serialize-bundle",
+    "name": "rushlow-development/serialize-type-bundle",
     "description": "WIP - Unstable - serialize value objects in Doctrine",
     "license": "Apache-2.0",
     "type": "symfony-bundle",
