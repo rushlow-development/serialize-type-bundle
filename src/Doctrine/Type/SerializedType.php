@@ -100,15 +100,38 @@ final class SerializedType extends Type
 
         $reflectedObject = new \ReflectionClass($value['className']);
 
-        if (!$reflectedObject->implementsInterface(SerializableTypeInterface::class)) {
+        if ($reflectedObject->implementsInterface(SerializableTypeInterface::class)) {
+            /** @var SerializableTypeInterface $instance */
+            $instance = $reflectedObject->newInstanceWithoutConstructor();
+            $instance->__unserialize($value['data']);
+
+            return $instance;
+        }
+
+        if (!$reflectedObject->implementsInterface(Collection::class)) {
             return null;
         }
 
-        /** @var SerializableTypeInterface $instance */
-        $instance = $reflectedObject->newInstanceWithoutConstructor();
-        $instance->__unserialize($value['data']);
+        $items = [];
 
-        return $instance;
+        foreach ($value['data'] as $itemArray) {
+            if (!\array_key_exists('className', $itemArray) || !\array_key_exists('data', $itemArray)) {
+                continue;
+            }
+
+            $r = new \ReflectionClass($itemArray['className']);
+            if (!$r->implementsInterface(SerializableTypeInterface::class)) {
+                continue;
+            }
+
+            /** @var SerializableTypeInterface $instance */
+            $instance = $r->newInstanceWithoutConstructor();
+            $instance->__unserialize($itemArray['data']);
+
+            $items[] = $instance;
+        }
+
+        return new $value['className']($items);
     }
 
     protected function serialize(SerializableTypeInterface $object): string

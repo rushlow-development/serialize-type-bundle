@@ -36,7 +36,7 @@ trait SerializableTypeTrait
         return $data;
     }
 
-    public function __unserialize(array $data)
+    public function __unserialize(array $data): void
     {
         foreach ($data as $propertyName => $value) {
             $this->$propertyName = $value;

@@ -18,6 +18,7 @@
 
 namespace RD\SerializeTypeBundle\Tests\Unit\Doctrine\Type;
 
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use PHPUnit\Framework\TestCase;
 use RD\SerializeTypeBundle\Doctrine\Type\SerializedType;
@@ -43,14 +44,31 @@ final class SerializedTypeTest extends TestCase
         );
     }
 
+    public function testConvertstToJsonAsCollection(): void
+    {
+        $collection = new ArrayCollection();
+        $collection->add(new SimpleObjectFixture('Jesse', 'Developer'));
+
+        $result = (new SerializedType())->convertToDatabaseValue(
+            value: $collection,
+            platform: $this->createMock(AbstractPlatform::class)
+        );
+
+        self::assertSame(
+            expected: '{"className":"Doctrine\\\\Common\\\\Collections\\\\ArrayCollection","data":[{"className":"RD\\\SerializeTypeBundle\\\Tests\\\Fixture\\\SimpleObjectFixture","data":{"name":"Jesse","description":"Developer"}}]}',
+            actual: $result
+        );
+    }
+
     public function testConvertsJsonToObject(): void
     {
         $result = (new SerializedType())->convertToPHPValue(
-            value: '{"className":"RD\\\SerializeTypeBundle\\\Tests\\\Fixture\\\SimpleObjectFixture","data":{"name":"Jesse","description":"Developer"}}',
+            value: '{"className":"Doctrine\\\\Common\\\\Collections\\\\ArrayCollection","data":[{"className":"RD\\\SerializeTypeBundle\\\Tests\\\Fixture\\\SimpleObjectFixture","data":{"name":"Jesse","description":"Developer"}}]}',
             platform: $this->createMock(AbstractPlatform::class),
         );
 
-        $expected = new SimpleObjectFixture('Jesse', 'Developer');
+        $expected = new ArrayCollection();
+        $expected->add(new SimpleObjectFixture('Jesse', 'Developer'));
 
         self::assertEquals($expected, $result);
     }

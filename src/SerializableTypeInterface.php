@@ -35,5 +35,5 @@ interface SerializableTypeInterface
      *
      * @param array<string, mixed> $data
      */
-    public function __unserialize(array $data);
+    public function __unserialize(array $data): void;
 }
