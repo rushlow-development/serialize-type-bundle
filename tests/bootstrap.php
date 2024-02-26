@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * Copyright 2024 Rushlow Development - Jesse Rushlow
  *
@@ -16,23 +18,8 @@
  * limitations under the License.
  */
 
-namespace RD\SerializeTypeBundle\Tests\Fixture;
+require dirname(__DIR__).'/vendor/autoload.php';
 
-use RD\SerializeTypeBundle\SerializableTypeInterface;
-use RD\SerializeTypeBundle\SerializableTypeTrait;
+use Symfony\Component\ErrorHandler\ErrorHandler;
 
-/**
- * @author Jesse Rushlow <jr@rushlow.dev>
- *
- * @internal
- */
-final class SimpleObjectFixture implements SerializableTypeInterface
-{
-    use SerializableTypeTrait;
-
-    public function __construct(
-        public string $name,
-        public string $description,
-    ) {
-    }
-}
+set_exception_handler([new ErrorHandler(), 'handleException']);

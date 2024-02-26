@@ -37,6 +37,7 @@ final class SerializedType extends Type
         return $platform->getJsonTypeDeclarationSQL($column);
     }
 
+    #[\Override]
     public function convertToDatabaseValue(mixed $value, AbstractPlatform $platform): ?string
     {
         if (!\is_object($value) && !\in_array(SerializableTypeInterface::class, class_implements($value))) {
@@ -46,6 +47,7 @@ final class SerializedType extends Type
         return $this->serialize($value);
     }
 
+    #[\Override]
     public function convertToPHPValue(mixed $value, AbstractPlatform $platform): ?object
     {
         if (!\is_string($value)) {

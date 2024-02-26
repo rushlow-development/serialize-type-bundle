@@ -16,13 +16,26 @@
  * limitations under the License.
  */
 
-namespace RD\SerializeTypeBundle;
+namespace RD\SerializeTypeBundle\Tests\Fixture\Entity;
 
-use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
+use Doctrine\ORM\Mapping as ORM;
+use RD\SerializeTypeBundle\Tests\Fixture\EntityRepositoryFixture;
+use RD\SerializeTypeBundle\Tests\Fixture\SimpleObjectFixture;
 
 /**
- * @author Jesse Rushlow<jr@rushlow.dev>
+ * @author Jesse Rushlow <jr@rushlow.dev>
+ *
+ * @internal
  */
-class RDSerializeBundle extends AbstractBundle
+#[ORM\Entity(repositoryClass: EntityRepositoryFixture::class)]
+class EntityFixture
 {
+    public function __construct(
+        #[ORM\Column(type: 'serialized')]
+        public SimpleObjectFixture $simpleObjectFixture,
+
+        #[ORM\Column, ORM\Id]
+        public int $id = 1,
+    ) {
+    }
 }

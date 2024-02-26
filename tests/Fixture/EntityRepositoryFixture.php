@@ -18,21 +18,21 @@
 
 namespace RD\SerializeTypeBundle\Tests\Fixture;
 
-use RD\SerializeTypeBundle\SerializableTypeInterface;
-use RD\SerializeTypeBundle\SerializableTypeTrait;
+use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\Persistence\ManagerRegistry;
+use RD\SerializeTypeBundle\Tests\Fixture\Entity\EntityFixture;
 
 /**
  * @author Jesse Rushlow <jr@rushlow.dev>
  *
  * @internal
+ *
+ * @extends ServiceEntityRepository<EntityFixture>
  */
-final class SimpleObjectFixture implements SerializableTypeInterface
+final class EntityRepositoryFixture extends ServiceEntityRepository
 {
-    use SerializableTypeTrait;
-
-    public function __construct(
-        public string $name,
-        public string $description,
-    ) {
+    public function __construct(ManagerRegistry $registry)
+    {
+        parent::__construct($registry, EntityFixture::class);
     }
 }

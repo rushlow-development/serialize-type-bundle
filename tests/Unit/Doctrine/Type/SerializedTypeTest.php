@@ -23,7 +23,12 @@ use PHPUnit\Framework\TestCase;
 use RD\SerializeTypeBundle\Doctrine\Type\SerializedType;
 use RD\SerializeTypeBundle\Tests\Fixture\SimpleObjectFixture;
 
-class SerializedTypeTest extends TestCase
+/**
+ * @author Jesse Rushlow <jr@rushlow.dev>
+ *
+ * @internal
+ */
+final class SerializedTypeTest extends TestCase
 {
     public function testConvertsToJson(): void
     {

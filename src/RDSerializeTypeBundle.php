@@ -16,24 +16,27 @@
  * limitations under the License.
  */
 
-namespace RD\SerializeTypeBundle\Exception;
+namespace RD\SerializeTypeBundle;
+
+use RD\SerializeTypeBundle\Doctrine\Type\SerializedType;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 
 /**
  * @author Jesse Rushlow<jr@rushlow.dev>
- *
- * @internal
- *
- * @experimental
  */
-final class UnserializeException extends \RuntimeException
+final class RDSerializeTypeBundle extends AbstractBundle
 {
-    public function __construct(string $error, ?\Throwable $previous = null)
+    #[\Override]
+    public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-        $message = sprintf(
-            'Unable to convert string to object. Error: %s',
-            $error
-        );
-
-        parent::__construct(message: $message, previous: $previous);
+        $container->extension('doctrine', [
+            'dbal' => [
+                'types' => [
+                    'serialized' => SerializedType::class,
+                ],
+            ],
+        ]);
     }
 }

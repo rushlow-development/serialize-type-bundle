@@ -22,6 +22,8 @@ namespace RD\SerializeTypeBundle\Exception;
  * @author Jesse Rushlow<jr@rushlow.dev>
  *
  * @internal
+ *
+ * @experimental
  */
 final class SerializeException extends \RuntimeException
 {
