@@ -18,6 +18,8 @@
 
 namespace RD\SerializeTypeBundle\Tests\Fixture\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use RD\SerializeTypeBundle\Tests\Fixture\EntityRepositoryFixture;
 use RD\SerializeTypeBundle\Tests\Fixture\SimpleObjectFixture;
@@ -36,6 +38,12 @@ class EntityFixture
 
         #[ORM\Column, ORM\Id]
         public int $id = 1,
+
+        /**
+         * @var Collection<int, SimpleObjectFixture>
+         */
+        #[ORM\Column(type: 'serialized')]
+        public Collection $fixtures = new ArrayCollection(),
     ) {
     }
 }

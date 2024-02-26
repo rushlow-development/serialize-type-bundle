@@ -18,6 +18,7 @@
 
 namespace RD\SerializeTypeBundle\Tests\Functional;
 
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use PHPUnit\Framework\TestCase;
@@ -26,6 +27,7 @@ use RD\SerializeTypeBundle\Tests\Fixture\Entity\EntityFixture;
 use RD\SerializeTypeBundle\Tests\Fixture\SimpleObjectFixture;
 use RD\SerializeTypeBundle\Tests\SerializeBundleTestKernel;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\HttpKernel\KernelInterface;
 
 /**
  * @author Jesse Rushlow <jr@rushlow.dev>
@@ -34,6 +36,30 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
  */
 final class BundleTest extends TestCase
 {
+    private KernelInterface $kernel;
+    private EntityManagerInterface $entityManager;
+
+    #[\Override]
+    protected function setUp(): void
+    {
+        $builder = new ContainerBuilder();
+        $definition = $builder->autowire('app.service', ServiceFixture::class);
+        $definition->setPublic(true);
+        $definition->setAutoconfigured(true);
+
+        $this->kernel = new SerializeBundleTestKernel($builder);
+        $this->kernel->boot();
+
+        $container = $this->kernel->getContainer();
+
+        /** @var EntityManagerInterface $entityManager */
+        $this->entityManager = $container->get('doctrine')->getManager(); // @phpstan-ignore-line
+
+        $tools = new SchemaTool($this->entityManager);
+        $tools->dropDatabase();
+        $tools->createSchema($this->entityManager->getMetadataFactory()->getAllMetadata());
+    }
+
     public function testSerializedTypeIsRegistered(): void
     {
         $kernel = new SerializeBundleTestKernel();
@@ -47,36 +73,49 @@ final class BundleTest extends TestCase
 
     public function testSerialization(): void
     {
-        $builder = new ContainerBuilder();
-        $definition = $builder->autowire('app.service', ServiceFixture::class);
-        $definition->setPublic(true);
-        $definition->setAutoconfigured(true);
-
-        $kernel = new SerializeBundleTestKernel($builder);
-        $kernel->boot();
-
-        /** @var EntityManagerInterface $manager */
-        $manager = $kernel->getContainer()->get('app.service')->manager;
-
-        $tools = new SchemaTool($manager);
-        $tools->dropDatabase();
-        $tools->createSchema($manager->getMetadataFactory()->getAllMetadata());
-
         $simpleObject = new SimpleObjectFixture(name: 'Jesse', description: 'Developer');
         $entity = new EntityFixture($simpleObject);
 
-        $manager->persist($entity);
-        $manager->flush();
+        $this->entityManager->persist($entity);
+        $this->entityManager->flush();
 
-        $result = $manager->getConnection()->executeQuery('SELECT * FROM EntityFixture;');
+        $result = $this->entityManager->getConnection()->executeQuery('SELECT * FROM EntityFixture;');
         $result = $result->fetchAllAssociative();
 
-        self::assertEquals([
-            'id' => 1,
+        self::assertArrayIsIdenticalToArrayIgnoringListOfKeys([
             'simpleObjectFixture' => '{"className":"RD\\\\SerializeTypeBundle\\\\Tests\\\\Fixture\\\\SimpleObjectFixture","data":{"name":"Jesse","description":"Developer"}}',
+            'id' => 1,
+        ], $result[0], ['fixtures']);
+
+        $repository = $this->entityManager->getRepository(EntityFixture::class);
+
+        $results = $repository->findAll();
+        self::assertCount(1, $results);
+
+        self::assertSame($entity, $results[0]);
+    }
+
+    public function testCollectionSerialization(): void
+    {
+        $collection = new ArrayCollection();
+        $collection->add(new SimpleObjectFixture(name: 'Jesse', description: 'Collection'));
+
+        $simpleObject = new SimpleObjectFixture(name: 'Jesse', description: 'Developer');
+        $entity = new EntityFixture($simpleObject, fixtures: $collection);
+
+        $this->entityManager->persist($entity);
+        $this->entityManager->flush();
+
+        $result = $this->entityManager->getConnection()->executeQuery('SELECT * FROM EntityFixture;');
+        $result = $result->fetchAllAssociative();
+
+        self::assertSame([
+            'simpleObjectFixture' => '{"className":"RD\\\\SerializeTypeBundle\\\\Tests\\\\Fixture\\\\SimpleObjectFixture","data":{"name":"Jesse","description":"Developer"}}',
+            'id' => 1,
+            'fixtures' => '{"className":"Doctrine\\\\Common\\\\Collections\\\\ArrayCollection","data":[{"className":"RD\\\\SerializeTypeBundle\\\\Tests\\\\Fixture\\\\SimpleObjectFixture","data":{"name":"Jesse","description":"Collection"}}]}',
         ], $result[0]);
 
-        $repository = $manager->getRepository(EntityFixture::class);
+        $repository = $this->entityManager->getRepository(EntityFixture::class);
 
         $results = $repository->findAll();
         self::assertCount(1, $results);

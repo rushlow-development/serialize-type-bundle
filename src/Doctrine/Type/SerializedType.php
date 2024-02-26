@@ -18,6 +18,7 @@
 
 namespace RD\SerializeTypeBundle\Doctrine\Type;
 
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\Type;
 use RD\SerializeTypeBundle\Exception\SerializeException;
@@ -40,11 +41,40 @@ final class SerializedType extends Type
     #[\Override]
     public function convertToDatabaseValue(mixed $value, AbstractPlatform $platform): ?string
     {
-        if (!\is_object($value) && !\in_array(SerializableTypeInterface::class, class_implements($value))) {
+        if (!\is_object($value)) {
             return null;
         }
 
-        return $this->serialize($value);
+        if (\in_array(SerializableTypeInterface::class, class_implements($value))) {
+            /** @var SerializableTypeInterface $value */
+            return $this->serialize($value);
+        }
+
+        if (!\in_array(Collection::class, class_implements($value))) {
+            // If the object doesn't implement our type interface and isn't a collection
+            // return null;
+            return null;
+        }
+
+        $collectionItems = [];
+
+        /** @var Collection<int|string, mixed> $value */
+        foreach ($value as $collectionItemValue) {
+            if (!\is_object($collectionItemValue)) {
+                continue;
+            }
+
+            if (!\in_array(SerializableTypeInterface::class, class_implements($collectionItemValue))) {
+                continue;
+            }
+
+            /** @var SerializableTypeInterface $collectionItemValue */
+            $collectionItems[] = ['className' => $collectionItemValue::class, 'data' => $collectionItemValue->__serialize()];
+        }
+
+        $collection = ['className' => $value::class, 'data' => $collectionItems];
+
+        return json_encode($collection, \JSON_THROW_ON_ERROR | \JSON_PRESERVE_ZERO_FRACTION);
     }
 
     #[\Override]
@@ -56,8 +86,16 @@ final class SerializedType extends Type
 
         try {
             $value = json_decode($value, associative: true, flags: \JSON_THROW_ON_ERROR);
+
+            if (!\is_array($value)) {
+                return null;
+            }
         } catch (\JsonException $exception) {
             throw new UnserializeException($exception->getMessage(), $exception);
+        }
+
+        if (!\array_key_exists('className', $value) || !\array_key_exists('data', $value)) {
+            return null;
         }
 
         $reflectedObject = new \ReflectionClass($value['className']);
@@ -66,6 +104,7 @@ final class SerializedType extends Type
             return null;
         }
 
+        /** @var SerializableTypeInterface $instance */
         $instance = $reflectedObject->newInstanceWithoutConstructor();
         $instance->__unserialize($value['data']);
 
